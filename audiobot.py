@@ -1,5 +1,6 @@
 # set encoding: utf-8
 import json
+import logging
 import os
 import random
 
@@ -10,6 +11,21 @@ BOT_TOKEN = "YOUR_TOKEN"
 
 DESCRIPTION_FILE = "dataset.json"
 MENTION_WORD = "YOUR_WORD"
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+fh = logging.FileHandler('bot.log')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().addHandler(fh)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 class Dataset:
@@ -45,6 +61,7 @@ def frase(msg):
 def search_mentions(msg):
     if MENTION_WORD not in msg.text.lower():
         return
+    logger.info("Responding to user %s" % msg.chat.id)
     audio, duration = dataset.random_audio()
     bot.send_audio(msg.chat.id, audio, duration)
 

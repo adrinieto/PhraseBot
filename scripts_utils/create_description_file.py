@@ -15,6 +15,8 @@ description_template = {
     "data": OrderedDict()
 }
 for file in files:
+    if not os.path.isfile(file):
+        continue
     description_template["data"][file] = {
         "title": "",
         "keywords": ""
