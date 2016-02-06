@@ -1,5 +1,4 @@
 # set encoding: utf-8
-import json
 import logging
 import os
 import random
@@ -9,7 +8,7 @@ from tinytag.tinytag import TinyTag
 
 BOT_TOKEN = "YOUR_TOKEN"
 
-DESCRIPTION_FILE = "dataset.json"
+AUDIO_FOLDER = "data/"
 MENTION_WORD = "YOUR_WORD"
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -27,33 +26,30 @@ ch.setLevel(logging.INFO)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
-class Dataset:
-    def __init__(self, description_file):
-        with open(description_file) as fp:
-            description = json.load(fp)
-        self.path = description['path']
-        self.data = description['data']
-        self.data_keys = list(self.data.keys())
-
-    def random_key(self):
-        return random.choice(self.data_keys)
-
-    def random_audio(self):
-        key = self.random_key()
-        path = os.path.join(self.path, key)
-        audio = open(path, 'rb')
-        tag = TinyTag.get(path)
-        return audio, tag.duration
+audio_files = [file for file in os.listdir(AUDIO_FOLDER) if os.path.isfile(os.path.join(AUDIO_FOLDER, file))]
+logger.info("Loaded with %d audio files" % len(audio_files))
 
 
-dataset = Dataset(DESCRIPTION_FILE)
+def user_log_string(msg):
+    return "%s:%s (%s %s)" % (
+        msg.from_user.id, msg.from_user.username, msg.from_user.first_name, msg.from_user.last_name)
+
+
+def random_audio(files):
+    audio_file = random.choice(files)
+    path = os.path.join(AUDIO_FOLDER, audio_file)
+    audio = open(path, 'rb')
+    tag = TinyTag.get(path)
+    return audio, tag.duration
+
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
 @bot.message_handler(commands=['frase'])
 def frase(msg):
-    audio, duration = dataset.random_audio()
+    logger.info("/frase: responding to user %s" % user_log_string(msg))
+    audio, duration = random_audio(audio_files)
     bot.send_audio(msg.chat.id, audio, duration)
 
 
@@ -61,8 +57,8 @@ def frase(msg):
 def search_mentions(msg):
     if MENTION_WORD not in msg.text.lower():
         return
-    logger.info("Responding to user %s" % msg.chat.id)
-    audio, duration = dataset.random_audio()
+    logger.info("mention: responding to user %s" % user_log_string(msg))
+    audio, duration = random_audio(audio_files)
     bot.send_audio(msg.chat.id, audio, duration)
 
 
