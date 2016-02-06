@@ -4,12 +4,10 @@ import logging
 import os
 import random
 import re
+
 import telebot
 from tinytag.tinytag import TinyTag
-
-BOT_TOKEN = "YOUR_TOKEN"
-DESCRIPTION_FILE = "YOUR_DATASET"
-MENTION_WORDS = {"YOUR_WORDS"}
+from config import BOT_TOKEN, DESCRIPTION_FILE, MENTION_WORDS
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -29,11 +27,11 @@ logger.addHandler(ch)
 
 class Dataset:
     def __init__(self, description_file):
-        with open(description_file) as fp:
+        with open(description_file, encoding="utf-8") as fp:
             description = json.load(fp)
         self.path = description['path']
         self.data = description['data']
-        self.data_keys = list(self.data.keys())
+        self.data_keys = sorted(list(self.data.keys()))
         self.last_random = None
 
         for key in self.data_keys:
@@ -47,6 +45,8 @@ class Dataset:
         :param words:
         :return:
         """
+        if not words:
+            return []
         logger.debug("Searching candidates")
         candidates = []
         for key in self.data_keys:
@@ -55,6 +55,15 @@ class Dataset:
                 logger.debug("Matching words: %s" % word_intersection)
                 candidates.append(key)
         return candidates
+
+    def get_audio_by_key(self, key):
+        path = os.path.join(self.path, key)
+        audio = open(path, 'rb')
+        tag = TinyTag.get(path)
+        return audio, tag.duration
+
+    def get_audio(self, audio_id):
+        return self.get_audio_by_key(self.data_keys[audio_id])
 
     def random_audio(self, words=None):
         audio_candidates = self._audio_candidates(words)
@@ -65,10 +74,13 @@ class Dataset:
             # Don't repeat audio file
             while key == self.last_random:
                 key = random.choice(self.data_keys)
-        path = os.path.join(self.path, key)
-        audio = open(path, 'rb')
-        tag = TinyTag.get(path)
-        return audio, tag.duration
+        return self.get_audio_by_key(key)
+
+    def list_files(self):
+        text = []
+        for i, key in enumerate(self.data_keys):
+            text.append("%2d > %s" % (i, self.data[key]['title']))
+        return "\n".join(text)
 
 
 def user_log_string(msg):
@@ -76,9 +88,9 @@ def user_log_string(msg):
         msg.from_user.id, msg.from_user.username, msg.from_user.first_name, msg.from_user.last_name)
 
 
-def sanitize_string(msg):
+def sanitize_string(text):
     chars_to_remove = "[¡¿!?,.]"
-    msg_plain = re.sub(chars_to_remove, "", msg.text.lower())
+    msg_plain = re.sub(chars_to_remove, "", text.lower())
     replacements = {"á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u"}
     for old, new in replacements.items():
         msg_plain = msg_plain.replace(old, new)
@@ -89,16 +101,29 @@ dataset = Dataset(DESCRIPTION_FILE)
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
+@bot.message_handler(commands=["list"])
+def audio_list(msg):
+    bot.reply_to(msg, dataset.list_files())
+
+
 @bot.message_handler(commands=['frase'])
 def frase(msg):
+    try:
+        audio_id = int(msg.text.split()[1])
+    except (IndexError, ValueError):
+        audio_id = -1
+    if 0 <= audio_id < len(dataset.data_keys):
+        audio, duration = dataset.get_audio(audio_id)
+    else:
+        audio, duration = dataset.random_audio()
     logger.info("/frase: responding to user %s" % user_log_string(msg))
-    audio, duration = dataset.random_audio()
+
     bot.send_audio(msg.chat.id, audio, duration)
 
 
 @bot.message_handler()
 def search_mentions(msg):
-    msg_plain = sanitize_string(msg)
+    msg_plain = sanitize_string(msg.text)
     msg_words = set(msg_plain.split())
     if not MENTION_WORDS.intersection(msg_words):
         return
