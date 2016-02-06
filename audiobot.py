@@ -1,28 +1,12 @@
 # set encoding: utf-8
 import json
-import logging
 import os
 import random
-import re
 
 import telebot
-from tinytag.tinytag import TinyTag
 from config import BOT_TOKEN, DESCRIPTION_FILE, MENTION_WORDS
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-fh = logging.FileHandler('bot.log')
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(formatter)
-logging.getLogger().setLevel(logging.DEBUG)
-logging.getLogger().addHandler(fh)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+from tinytag.tinytag import TinyTag
+from utils import logger, user_log_string, sanitize_string
 
 
 class Dataset:
@@ -83,20 +67,6 @@ class Dataset:
         return "\n".join(text)
 
 
-def user_log_string(msg):
-    return "%s:%s (%s %s)" % (
-        msg.from_user.id, msg.from_user.username, msg.from_user.first_name, msg.from_user.last_name)
-
-
-def sanitize_string(text):
-    chars_to_remove = "[¡¿!?,.]"
-    msg_plain = re.sub(chars_to_remove, "", text.lower())
-    replacements = {"á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u"}
-    for old, new in replacements.items():
-        msg_plain = msg_plain.replace(old, new)
-    return msg_plain
-
-
 dataset = Dataset(DESCRIPTION_FILE)
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -116,7 +86,7 @@ def frase(msg):
         audio, duration = dataset.get_audio(audio_id)
     else:
         audio, duration = dataset.random_audio()
-    logger.info("/frase: responding to user %s" % user_log_string(msg))
+    logger.info("%s: responding to user %s" % (msg.text, user_log_string(msg)))
 
     bot.send_audio(msg.chat.id, audio, duration)
 
