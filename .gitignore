@@ -1,4 +1,5 @@
 .idea/
 data/
 venv/
+/top_phrases.json
 bot.log
