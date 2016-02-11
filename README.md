@@ -1,4 +1,4 @@
-PhraseTelebot
+PhraseBot
 =========
 
 PhraseBot is a Telegram Bot that send audio phrases. It's intended for being part of a group.
@@ -32,13 +32,13 @@ Then, disable privacy mode (to work looking for mention words) with `/setprivacy
 Finally, copy the given token to `config.py`.
 
 Now we need to create the phrase dataset:
-1. Put all your audio files in a folder, default folder is `data/`.
+ 1. Put all your audio files in a folder, default folder is `data/`.
 Files must be `.ogg` extension (you can use <http://media.io/> to convert them)
-2. (Optional) Run script `script_utils/rename_files.py` with the dataset folder as argument to rename files.
-3. Run script `script_utils/create_description_file.py` with the dataset folder as argument. It will create in the same
+ 2. (Optional) Run script `script_utils/rename_files.py` with the dataset folder as argument to rename files.
+ 3. Run script `script_utils/create_description_file.py` with the dataset folder as argument. It will create in the same
 directory the description file template describing the dataset. Put the path of the description file in `config.py`
-4. Complete the information in the description file.
-5. Start the bot and enjoy. ;)
+ 4. Complete the information in the description file.
+ 5. Start the bot and enjoy. ;)
 
 
 

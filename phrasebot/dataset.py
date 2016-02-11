@@ -17,13 +17,11 @@ class Dataset:
         self.data = description['data']
 
         self.data_keys = sorted(list(self.data.keys()))
-        self.top_phrases = self.load_top_phrases(TOP_PHRASES_FILE)
-        self.last_random = None
-
         for key in self.data_keys:
             self.data[key]['keywords'] = set(self.data[key]['keywords'].split())
-
         logger.info("Dataset loaded with %d audio files" % len(self.data_keys))
+        self.top_phrases = self.load_top_phrases(os.path.join(self.path, TOP_PHRASES_FILE))
+        self.last_random = None
 
     def _audio_candidates(self, words):
         """
@@ -89,4 +87,5 @@ class Dataset:
             for i in range(len(self.data_keys)):
                 if i not in json_top_converted:
                     json_top_converted.update({i: 0})
+            logger.info("Loaded top_phrases from file")
             return collections.Counter(json_top_converted)
